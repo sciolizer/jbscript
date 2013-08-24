@@ -77,7 +77,7 @@ public class BNF {
         return p.sequence(new Sequence<Statement>() {
             @Override
             public Statement parse(Getter g) throws ParseFailException {
-                p.equalsIgnoreCase("end");
+                g.get(p.equalsIgnoreCase("end"));
                 return new End();
             }
         });

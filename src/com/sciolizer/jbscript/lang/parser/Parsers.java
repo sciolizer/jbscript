@@ -1,5 +1,6 @@
 package com.sciolizer.jbscript.lang.parser;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -21,16 +22,25 @@ public class Parsers {
         return new Parser<T>() {
             @Override
             public T parse(ParserState original) throws ParseFailException {
-                ParseFailException originalException = null;
+                List<ParseFailException> failures = new ArrayList<>(parsers.size());
                 for (Parser<? extends T> parser : parsers) {
                     ParserState copy = original.copy();
                     try {
-                        return parser.parse(copy);
+                        T ret = parser.parse(copy);
+                        original.copyFrom(copy);
+                        return ret;
                     } catch (ParseFailException pfe) {
-                        if (originalException == null) originalException = pfe;
+                        ParserState wouldHaveBeen = original.copy();
+                        if (wouldHaveBeen.peek() != null) {
+                            wouldHaveBeen.pop();
+                            if (!copy.equals(wouldHaveBeen)) {
+                                throw pfe; // at least two tokens have been consumed, so commit to this path
+                            }
+                        }
+                        failures.add(pfe);
                     }
                 }
-                throw originalException;
+                throw new ParseFailException(failures);
             }
         };
     }
@@ -82,7 +92,7 @@ public class Parsers {
     }
 
     public Parser<String> literally(final String exactExpectation) {
-        return predicate('"' + exactExpectation + '"', new Predicate<String>() {
+        return predicate(exactExpectation, new Predicate<String>() {
             @Override
             public boolean matches(String value) {
                 return exactExpectation.equals(value);
