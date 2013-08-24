@@ -7,34 +7,22 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.nio.charset.Charset;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 public class Notepad {
 
-    TextArea text;
-
-    Font f;
-
-    String str = " ";
-
-    String str1 = " ", str2 = " ", str3 = " ";
-    String str4 = " ";
-
-    String str6 = " ";
-    String str7 = " ", str8 = " ", str9 = " ";
-
-    int len1;
-
-    int i = 0;
-    int pos1;
-    int len;
-
+    protected TextArea text;
+    protected Font f;
+    private final Charset charset = Charset.forName("UTF-8");
 
     public void initialize() {
-        final JFrame jFrame = new JFrame("Untitled-Notepad");
+        final JFrame jFrame = new JFrame("jbscript");
         jFrame.setSize(500, 500);
         jFrame.setVisible(true);
         jFrame.addWindowListener(new WindowAdapter() {
@@ -53,10 +41,7 @@ public class Notepad {
         jFrame.setMenuBar(mbar);
 
         Menu file = new Menu("File");
-        Menu edit = new Menu("Edit");
         Menu format = new Menu("Format");
-        Menu font = new Menu("Font");
-        Menu font1 = new Menu("Font Style");
         Menu font2 = new Menu("Size");
 
         file.add(newMenuItem("New...", new ActionListener() {
@@ -70,26 +55,25 @@ public class Notepad {
         file.add(newMenuItem("Open", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                str4 = " ";
                 FileDialog dialog = new FileDialog(jFrame, "Open");
                 dialog.setVisible(true);
 
-                str1 = dialog.getDirectory();
-                str2 = dialog.getFile();
-                str3 = str1 + str2;
-                File f = new File(str3);
+                String directory = dialog.getDirectory();
+                String fileName = dialog.getFile();
+                if (directory == null || fileName == null) return;
+                Path path = FileSystems.getDefault().getPath(directory, fileName);
+                List<String> lines;
                 try {
-                    FileInputStream fobj = new FileInputStream(f);
-                    len = (int) f.length();
-                    for (int j = 0; j < len; j++) {
-                        char str5 = (char) fobj.read();
-                        str4 = str4 + str5;
-
-                    }
+                    lines = Files.readAllLines(path, charset);
                 } catch (IOException e1) {
                     e1.printStackTrace();
+                    return;
                 }
-                text.setText(str4);
+                StringBuilder builder = new StringBuilder();
+                for (String line : lines) {
+                    builder.append(line).append('\n');
+                }
+                text.setText(builder.toString());
             }
         }));
         file.add(newMenuItem("Save As...", new ActionListener() {
@@ -98,13 +82,13 @@ public class Notepad {
                 FileDialog dialog1 = new FileDialog(jFrame, "Save As", FileDialog.SAVE);
                 dialog1.setVisible(true);
 
-                str7 = dialog1.getDirectory();
-                str8 = dialog1.getFile();
-                str9 = str7 + str8;
+                String str7 = dialog1.getDirectory();
+                String str8 = dialog1.getFile();
+                String str9 = str7 + str8;
 
 
-                str6 = text.getText();
-                len1 = str6.length();
+                String str6 = text.getText();
+                int len1 = str6.length();
                 byte buf[] = str6.getBytes();
 
                 File f1 = new File(str9);
@@ -134,69 +118,8 @@ public class Notepad {
 
         mbar.add(file);
 
-        edit.add(newMenuItem("Cut (Ctrl+X)", new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Notepad.this.str = text.getSelectedText();
-                i = text.getText().indexOf(Notepad.this.str);
-                text.replaceRange(" ", i, i + Notepad.this.str.length());
-            }
-        }));
-        edit.add(newMenuItem("Copy (Ctrl+C)", new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Notepad.this.str = text.getSelectedText();
-            }
-        }));
-        edit.add(newMenuItem("Paste (Ctrl+V)", new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pos1 = text.getCaretPosition();
-                text.insert(Notepad.this.str, pos1);
-            }
-        }));
 
-        edit.add(newMenuItem("Delete", new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String msg = text.getSelectedText();
-                i = text.getText().indexOf(msg);
-                text.replaceRange(" ", i, i + msg.length());
-            }
-        }));
-        edit.add(newMenuItem("Select All (Ctrl+A)", new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String strText = text.getText();
-                int strLen = strText.length();
-                text.select(0, strLen);
-            }
-        }));
-
-        mbar.add(edit);
-
-        format.add(font);
-        format.add(font1);
         format.add(font2);
-
-        ActionListener fontFaceAction = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int fontSize = f.getSize();
-                int fontStyle = f.getStyle();
-
-                f = new Font(e.getActionCommand(), fontStyle, fontSize);
-                text.setFont(f);
-            }
-        };
-        for (String face : Arrays.asList("Courier", "Sans Serif", "Monospaced", "Symbol")) {
-            font.add(newMenuItem(face, fontFaceAction));
-        }
-
-        font1.add(menuItemFontStyle("Regular", Font.PLAIN));
-        font1.add(menuItemFontStyle("Bold", Font.BOLD));
-        font1.add(menuItemFontStyle("Italic", Font.ITALIC));
-        font1.add(menuItemFontStyle("Bold Italic", Font.BOLD | Font.ITALIC));
 
         for (int fontSize : new int[]{12, 14, 18, 20}) {
             MenuItem fsize = new MenuItem(String.valueOf(fontSize));
@@ -220,11 +143,10 @@ public class Notepad {
         text = new TextArea(26, 60);
         mainpanel.add(text, BorderLayout.CENTER);
 
-        f = new Font("Monotype Corsiva", Font.PLAIN, 15);
+        f = new Font("Monospaced", Font.PLAIN, 15);
         text.setFont(f);
 
         jFrame.pack();
-//        jFrame.addListen
     }
 
     private MenuItem newMenuItem(String caption, ActionListener action) {
@@ -232,23 +154,6 @@ public class Notepad {
         menuItem.addActionListener(action);
         return menuItem;
     }
-
-    private MenuItem menuItemFontStyle(String caption, final int fontStyle) {
-        MenuItem ret = new MenuItem(caption);
-        ret.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String fontName = f.getName();
-                int fontSize = f.getSize();
-
-                f = new Font(fontName, fontStyle, fontSize);
-                text.setFont(f);
-            }
-        });
-        return ret;
-    }
-
 
     public static void main(String args[]) {
         Notepad note = new Notepad();
