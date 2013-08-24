@@ -21,7 +21,7 @@ import java.util.List;
 public class Notepad {
 
     protected JTextPane leftText;
-    //    protected TextArea rightText;
+    protected JTextPane rightText;
     protected Font f;
     private final Charset charset = Charset.forName("UTF-8");
 
@@ -30,7 +30,7 @@ public class Notepad {
 
     public void initialize() {
         final JFrame jFrame = new JFrame("jbscript");
-        jFrame.setSize(500, 500);
+        jFrame.setSize(200, 500);
         jFrame.setVisible(true);
         jFrame.addWindowListener(new WindowAdapter() {
             @Override
@@ -40,8 +40,9 @@ public class Notepad {
         });
 
 
-        JPanel mainpanel = (JPanel) jFrame.getContentPane();
-        mainpanel.setLayout(new BorderLayout());
+        JPanel parentPanel = (JPanel) jFrame.getContentPane();
+        Box mainpanel = new Box(BoxLayout.X_AXIS);
+        parentPanel.add(mainpanel);
 
 
         MenuBar mbar = new MenuBar();
@@ -148,8 +149,10 @@ public class Notepad {
         mbar.add(format);
 
         leftText = new JTextPane();
-        JScrollPane jScrollPane = new JScrollPane(leftText);
-        mainpanel.add(jScrollPane, BorderLayout.CENTER);
+        JScrollPane jScrollPaneLeft = new JScrollPane(leftText);
+        jScrollPaneLeft.setPreferredSize(null);
+//        jScrollPaneLeft.
+        mainpanel.add(jScrollPaneLeft); //, BorderLayout.WEST);
 
         leftText.addKeyListener(new KeyAdapter() {
             @Override
@@ -176,13 +179,14 @@ public class Notepad {
             }
         });
 
-//        rightText = new JTextPane(26, 60);
-//        mainpanel.add(rightText, BorderLayout.EAST);
+        rightText = new JTextPane();
+        JScrollPane jScrollPaneRight = new JScrollPane(rightText);
+        jScrollPaneRight.setPreferredSize(null);
+//        jScrollPaneRight.getVerticalScrollBar().setModel(jScrollPaneLeft.getVerticalScrollBar().getModel());
+        mainpanel.add(jScrollPaneRight); // , BorderLayout.EAST);
 
         f = new Font("Monospaced", Font.PLAIN, 15);
         leftText.setFont(f);
-//        leftText.getStyledDocument().sep
-//        rightText.setFont(f);
 
         jFrame.pack();
     }

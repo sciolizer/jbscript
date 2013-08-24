@@ -23,6 +23,7 @@ public class Reformater {
     protected StatementVisitors statementVisitors;
 
     public String reformat(String line) {
+        if (line.isEmpty()) return line;
         List<ConcreteToken> tokens;
         try {
             tokens = lexer.lex(line);
