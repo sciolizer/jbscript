@@ -45,7 +45,7 @@ public class TestBNF {
 
     }
 
-    private void assertReformat(String original, String expected) throws ParseFailException {
+    private void assertReformat(String original, String expected) throws ParseFailException, Lexer.LexFailException {
         List<ConcreteToken> tokens = lexer.lex(original);
         Statement statement = bnf.statement().parse(new ParserState(tokens));
         String actual = statement.accept(statementVisitors.asString());

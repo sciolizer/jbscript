@@ -10,7 +10,7 @@ import java.util.List;
 // First created by jball on 8/24/13 at 8:47 AM
 public class Lexer {
 
-    public List<ConcreteToken> lex(String input) {
+    public List<ConcreteToken> lex(String input) throws LexFailException {
         List<String> pieces = Arrays.asList(input.split("( |\t)+"));
         Tokenizer tokenizer = new Tokenizer(pieces);
         tokenizer.tokenize();
@@ -26,7 +26,7 @@ public class Lexer {
             this.tokens = new ArrayList<>(pieces.size());
         }
 
-        protected void tokenize() {
+        protected void tokenize() throws LexFailException {
             pieceLoop:
             for (String piece : pieces) {
                 for (Keyword keyword : Keyword.values()) {
@@ -47,7 +47,9 @@ public class Lexer {
                 }
                 if (Character.isDigit(piece.codePointAt(0))) {
                     add(new IntegerToken(new BigInteger(piece)));
+                    continue;
                 }
+                throw new LexFailException();
             }
         }
 
@@ -55,6 +57,10 @@ public class Lexer {
             this.tokens.add(new ConcreteToken(token, 0, 0));
         }
 
+
+    }
+
+    public static class LexFailException extends Exception {
 
     }
 }

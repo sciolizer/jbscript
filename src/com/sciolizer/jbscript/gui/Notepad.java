@@ -1,14 +1,17 @@
 package com.sciolizer.jbscript.gui;
 
+import com.sciolizer.jbscript.DefaultModule;
+import com.sciolizer.jbscript.annotation.Inject;
+import com.sciolizer.jbscript.lang.ast.intelligence.Reformater;
+
 import javax.swing.*;
+import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -17,10 +20,13 @@ import java.util.List;
 
 public class Notepad {
 
-    protected TextArea leftText;
-    protected TextArea rightText;
+    protected JTextPane leftText;
+    //    protected TextArea rightText;
     protected Font f;
     private final Charset charset = Charset.forName("UTF-8");
+
+    @Inject
+    protected Reformater reformater;
 
     public void initialize() {
         final JFrame jFrame = new JFrame("jbscript");
@@ -141,17 +147,68 @@ public class Notepad {
 
         mbar.add(format);
 
-        leftText = new TextArea(26, 60);
-        mainpanel.add(leftText, BorderLayout.WEST);
+        leftText = new JTextPane();
+        JScrollPane jScrollPane = new JScrollPane(leftText);
+        mainpanel.add(jScrollPane, BorderLayout.CENTER);
 
-        rightText = new TextArea(26, 60);
-        mainpanel.add(rightText, BorderLayout.EAST);
+        leftText.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() == '\n') {
+                    try {
+                        int createdLineOffset = leftText.getCaret().getDot();
+                        int createdLine = getLineOfOffset(leftText, createdLineOffset);
+                        int previousLineOffset = getLineStartOffset(leftText, createdLine - 1);
+                        int len = createdLineOffset - previousLineOffset;
+                        String text = leftText.getText(previousLineOffset, len);
+                        text = text.substring(0, text.length() - 1); // remove '\n'
+                        String replacement = reformater.reformat(text) + '\n'; // add it back
+                        StyledDocument styledDocument = leftText.getStyledDocument();
+                        styledDocument.remove(previousLineOffset, len);
+                        styledDocument.insertString(previousLineOffset, replacement, new SimpleAttributeSet());
+                    } catch (BadLocationException ble) {
+                        System.err.println("offsetRequested: " + ble.offsetRequested());
+                        ble.printStackTrace();
+                        throw new UndeclaredThrowableException(ble);
+                    }
+
+                }
+            }
+        });
+
+//        rightText = new JTextPane(26, 60);
+//        mainpanel.add(rightText, BorderLayout.EAST);
 
         f = new Font("Monospaced", Font.PLAIN, 15);
         leftText.setFont(f);
-        rightText.setFont(f);
+//        leftText.getStyledDocument().sep
+//        rightText.setFont(f);
 
         jFrame.pack();
+    }
+
+    static int getLineOfOffset(JTextComponent comp, int offset) throws BadLocationException {
+        Document doc = comp.getDocument();
+        if (offset < 0) {
+            throw new BadLocationException("Can't translate offset to line", -1);
+        } else if (offset > doc.getLength()) {
+            throw new BadLocationException("Can't translate offset to line", doc.getLength() + 1);
+        } else {
+            Element map = doc.getDefaultRootElement();
+            return map.getElementIndex(offset);
+        }
+    }
+
+    static int getLineStartOffset(JTextComponent comp, int line) throws BadLocationException {
+        Element map = comp.getDocument().getDefaultRootElement();
+        if (line < 0) {
+            throw new BadLocationException("Negative line", -1);
+        } else if (line >= map.getElementCount()) {
+            throw new BadLocationException("No such line", comp.getDocument().getLength() + 1);
+        } else {
+            Element lineElem = map.getElement(line);
+            return lineElem.getStartOffset();
+        }
     }
 
     private MenuItem newMenuItem(String caption, ActionListener action) {
@@ -160,8 +217,7 @@ public class Notepad {
         return menuItem;
     }
 
-    public static void main(String args[]) {
-        Notepad note = new Notepad();
-        note.initialize();
+    public static void main(String[] args) {
+        new DefaultModule().getNotepad();
     }
 }
