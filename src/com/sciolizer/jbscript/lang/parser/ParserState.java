@@ -1,17 +1,63 @@
 package com.sciolizer.jbscript.lang.parser;
 
 import com.sciolizer.jbscript.annotation.Nullable;
+import com.sciolizer.jbscript.lang.ConcreteToken;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 
 // First created by jball on 8/23/13 at 10:03 PM
-public interface ParserState {
+public class ParserState {
+
+    protected final List<ConcreteToken> tokens;
+
+    public ParserState(List<ConcreteToken> tokens) {
+        this.tokens = new LinkedList<>(tokens);
+    }
+
     @Nullable
-    String peek();
+    public ConcreteToken peek() {
+        return tokens.isEmpty() ? null : tokens.get(0);
+    }
 
-    String pop() throws ParseFailException; // exception raised if eof
+    public ConcreteToken pop() throws ParseFailException {
+        if (tokens.isEmpty()) {
+            throw new ParseFailException();
+        } else {
+            ConcreteToken ret = tokens.get(0);
+            tokens.remove(0);
+            return ret;
+        }
+    }
 
-    ParserState copy();
+    public ParserState copy() {
+        return new ParserState(this.tokens /* copy made in constructor */);
+    }
 
-    ParseFailException fail(String expected, String found);
+    public ParseFailException fail(String expected, String found) {
+        return new ParseFailException(expected, found);
+    }
 
-    void copyFrom(ParserState copy);
+    public void copyFrom(ParserState copy) {
+        this.tokens.clear();
+        this.tokens.addAll(copy.tokens);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tokens);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        final ParserState other = (ParserState) obj;
+        return Objects.equals(this.tokens, other.tokens);
+    }
 }

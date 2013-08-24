@@ -1,14 +1,19 @@
 package com.sciolizer.jbscript.lang;
 
+import com.sciolizer.jbscript.annotation.Inject;
 import com.sciolizer.jbscript.lang.ast.Expression;
 import com.sciolizer.jbscript.lang.ast.Statement;
 import com.sciolizer.jbscript.lang.ast.expression.LiteralInteger;
 import com.sciolizer.jbscript.lang.ast.expression.Variable;
 import com.sciolizer.jbscript.lang.ast.statement.*;
 import com.sciolizer.jbscript.lang.parser.*;
+import com.sciolizer.jbscript.lang.token.Identifier;
+import com.sciolizer.jbscript.lang.token.IntegerToken;
+import com.sciolizer.jbscript.lang.token.KeywordToken;
+import com.sciolizer.jbscript.lang.token.OperatorToken;
 
+import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.regex.Pattern;
 
 public class BNF {
 
@@ -40,7 +45,8 @@ public class BNF {
                 | Remark
                 */
 
-    protected final Parsers p = new Parsers();
+    @Inject
+    protected Parsers p;
 
     public Parser<Statement> statement() {
         return p.disjunction(Arrays.asList(
@@ -57,8 +63,9 @@ public class BNF {
         return p.sequence(new Sequence<Statement>() {
             @Override
             public Statement parse(Getter g) throws ParseFailException {
-                int lineNumber = g.get(integer());
-                return new Goto(lineNumber);
+                g.get(p.literally(new KeywordToken(Keyword.GOTO)));
+                BigInteger bigInteger = g.get(p.token(IntegerToken.class)).integer;
+                return new Goto(bigInteger);
             }
         });
     }
@@ -67,8 +74,9 @@ public class BNF {
         return p.sequence(new Sequence<Statement>() {
             @Override
             public Statement parse(Getter g) throws ParseFailException {
-                int lineNumber = g.get(integer());
-                return new Gosub(lineNumber);
+                g.get(p.literally(new KeywordToken(Keyword.GOSUB)));
+                BigInteger bigInteger = g.get(p.token(IntegerToken.class)).integer;
+                return new Gosub(bigInteger);
             }
         });
     }
@@ -77,7 +85,7 @@ public class BNF {
         return p.sequence(new Sequence<Statement>() {
             @Override
             public Statement parse(Getter g) throws ParseFailException {
-                g.get(p.equalsIgnoreCase("end"));
+                g.get(p.literally(new KeywordToken(Keyword.END)));
                 return new End();
             }
         });
@@ -87,9 +95,9 @@ public class BNF {
         return p.sequence(new Sequence<Statement>() {
             @Override
             public Statement parse(Getter g) throws ParseFailException {
-                g.get(p.equalsIgnoreCase("let"));
+                g.get(p.literally(new KeywordToken(Keyword.LET)));
                 Variable var = g.get(variable());
-                g.get(p.literally("="));
+                g.get(p.literally(new OperatorToken(Operator.EQUAL))); // =
                 Expression expression = g.get(expression());
                 return new Let(var, expression);
             }
@@ -100,11 +108,11 @@ public class BNF {
         return p.sequence(new Sequence<Statement>() {
             @Override
             public Statement parse(Getter g) throws ParseFailException {
-                g.get(p.equalsIgnoreCase("for"));
-                String var = g.get(identifier());
-                g.get(p.literally("="));
+                g.get(p.literally(new KeywordToken(Keyword.FOR)));
+                String var = g.get(p.token(Identifier.class)).identifier;
+                g.get(p.literally(new OperatorToken(Operator.EQUAL))); // =
                 Expression start = g.get(expression());
-                g.get(p.equalsIgnoreCase("to"));
+                g.get(p.literally(new KeywordToken(Keyword.TO)));
                 Expression end = g.get(expression());
                 return new For(var, start, end);
             }
@@ -115,7 +123,7 @@ public class BNF {
         return p.sequence(new Sequence<Statement>() {
             @Override
             public Statement parse(Getter g) throws ParseFailException {
-                g.get(p.equalsIgnoreCase("print"));
+                g.get(p.literally(new KeywordToken(Keyword.PRINT)));
                 Expression e = g.get(expression());
                 return new Print(e);
             }
@@ -193,37 +201,18 @@ public class BNF {
         return p.sequence(new Sequence<Expression>() {
             @Override
             public Expression parse(Getter g) throws ParseFailException {
-                int value = g.get(integer());
-                return new LiteralInteger(value);
+                return new LiteralInteger(g.get(p.token(IntegerToken.class)).integer);
             }
         });
     }
 
     public Parser<Variable> variable() {
-        return p.apply(identifier(), new StringParser<Variable>() {
+        return p.sequence(new Sequence<Variable>() {
             @Override
-            public Variable parseString(String str) throws ParseFailException {
-                return new Variable(str);
+            public Variable parse(Getter g) throws ParseFailException {
+                return new Variable(g.get(p.token(Identifier.class)).identifier);
             }
         });
     }
 
-    public Parser<String> identifier() {
-        return p.regex(identifierPattern);
-    }
-
-    public Parser<Integer> integer() {
-        return p.apply(p.any(), new StringParser<Integer>() {
-            @Override
-            public Integer parseString(String str) throws ParseFailException {
-                try {
-                    return Integer.parseInt(str);
-                } catch (NumberFormatException nfe) {
-                    throw new ParseFailException(nfe);
-                }
-            }
-        });
-    }
-
-    public static final Pattern identifierPattern = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*");
 }

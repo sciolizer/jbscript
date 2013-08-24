@@ -1,20 +1,19 @@
 package com.sciolizer.jbscript.lang.parser;
 
+import com.sciolizer.jbscript.annotation.Inject;
+import com.sciolizer.jbscript.lang.ConcreteToken;
+import com.sciolizer.jbscript.lang.token.Token;
+import com.sciolizer.jbscript.lang.token.TokenVisitor;
+import com.sciolizer.jbscript.lang.visitors.TokenVisitors;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 // First created by jball on 8/23/13 at 10:12 PM
 public class Parsers {
 
-//    public <T> Parser<T> constant(final T value) {
-//        return new Parser<T>() {
-//            @Override
-//            public T parse(ParserState parserState) throws ParseFailException {
-//                return value;
-//            }
-//        };
-//    }
+    @Inject
+    protected TokenVisitors tokenVisitors;
 
     public <T> Parser<T> disjunction(final List<? extends Parser<? extends T>> parsers) {
         if (parsers.isEmpty()) throw new IllegalArgumentException("parsers must be non-empty");
@@ -59,67 +58,41 @@ public class Parsers {
         };
     }
 
-    public <T> Parser<T> apply(final Parser<String> parser, final StringParser<T> stringParser) {
-        return sequence(new Sequence<T>() {
+    public Parser<Token> predicate(final String expected, final Predicate<Token> predicate) {
+        return new Parser<Token>() {
             @Override
-            public T parse(Getter g) throws ParseFailException {
-                return stringParser.parseString(g.get(parser));
-            }
-        });
-    }
-
-    public Parser<String> predicate(final String expected, final Predicate<String> predicate) {
-        return new Parser<String>() {
-            @Override
-            public String parse(ParserState parserState) throws ParseFailException {
-                String str = parserState.pop();
-                if (predicate.matches(str)) {
-                    return str;
+            public Token parse(ParserState parserState) throws ParseFailException {
+                ConcreteToken concreteToken = parserState.pop();
+                Token token = concreteToken.token;
+                if (predicate.matches(token)) {
+                    return token;
                 } else {
-                    throw parserState.fail(expected, str);
+                    throw parserState.fail(expected, concreteToken.token.accept(tokenVisitors.asString()));
                 }
             }
         };
     }
 
-    public Parser<String> any() {
-        return predicate("anything", new Predicate<String>() {
+    public Parser<Token> literally(final Token exactToken) {
+        TokenVisitor<String> asStringVisitor = tokenVisitors.asString();
+        String tokenAsString = exactToken.accept(asStringVisitor);
+        return predicate(tokenAsString, new Predicate<Token>() {
             @Override
-            public boolean matches(String value) {
-                return true;
+            public boolean matches(Token value) {
+                return exactToken.accept(tokenVisitors.equalTo(value));
             }
         });
     }
 
-    public Parser<String> literally(final String exactExpectation) {
-        return predicate(exactExpectation, new Predicate<String>() {
+    public <T extends Token> Parser<T> token(final Class<T> tokenClass) {
+        Parser<Token> tokenParser = predicate(tokenClass.getSimpleName(), new Predicate<Token>() {
             @Override
-            public boolean matches(String value) {
-                return exactExpectation.equals(value);
+            public boolean matches(Token value) {
+                return tokenClass.isAssignableFrom(value.getClass());
             }
         });
+        @SuppressWarnings("unchecked")
+        Parser<T> returnParser = (Parser<T>) tokenParser;
+        return returnParser;
     }
-
-    public Parser<String> equalsIgnoreCase(final String expected) {
-        return new Parser<String>() {
-            @Override
-            public String parse(ParserState parserState) throws ParseFailException {
-                String actual = parserState.pop();
-                if (!actual.equalsIgnoreCase(expected)) {
-                    throw parserState.fail(expected, actual);
-                }
-                return actual;
-            }
-        };
-    }
-
-    public Parser<String> regex(final Pattern pattern) {
-        return predicate("/" + pattern + '/', new Predicate<String>() {
-            @Override
-            public boolean matches(String value) {
-                return pattern.matcher(value).matches();
-            }
-        });
-    }
-
 }

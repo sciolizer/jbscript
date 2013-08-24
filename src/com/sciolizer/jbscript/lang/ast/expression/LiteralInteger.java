@@ -3,10 +3,12 @@ package com.sciolizer.jbscript.lang.ast.expression;// First created by jball on 
 import com.sciolizer.jbscript.lang.ast.Expression;
 import com.sciolizer.jbscript.lang.ast.ExpressionVisitor;
 
-public class LiteralInteger implements Expression {
-    public final int value;
+import java.math.BigInteger;
 
-    public LiteralInteger(int value) {
+public class LiteralInteger implements Expression {
+    public final BigInteger value;
+
+    public LiteralInteger(BigInteger value) {
         this.value = value;
     }
 
