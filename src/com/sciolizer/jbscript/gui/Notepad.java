@@ -4,13 +4,15 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class trail extends JFrame {
+public class Notepad {
 
     TextArea text;
 
@@ -30,16 +32,25 @@ public class trail extends JFrame {
     int pos1;
     int len;
 
-    public trail(String str) {
 
-        super(str);
+    public void initialize() {
+        final JFrame jFrame = new JFrame("Untitled-Notepad");
+        jFrame.setSize(500, 500);
+        jFrame.setVisible(true);
+        jFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                System.exit(0);
+            }
+        });
 
-        JPanel mainpanel = (JPanel) getContentPane();
-        mainpanel.setLayout(new FlowLayout());
+
+        JPanel mainpanel = (JPanel) jFrame.getContentPane();
+        mainpanel.setLayout(new BorderLayout());
 
 
         MenuBar mbar = new MenuBar();
-        setMenuBar(mbar);
+        jFrame.setMenuBar(mbar);
 
         Menu file = new Menu("File");
         Menu edit = new Menu("Edit");
@@ -51,17 +62,16 @@ public class trail extends JFrame {
         file.add(newMenuItem("New...", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                dispose();
-                trail note1 = new trail("Untitled-Notepad");
-                note1.setSize(500, 500);
-                note1.setVisible(true);
+                jFrame.dispose();
+                Notepad note1 = new Notepad();
+                note1.initialize();
             }
         }));
         file.add(newMenuItem("Open", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 str4 = " ";
-                FileDialog dialog = new FileDialog(trail.this, "Open");
+                FileDialog dialog = new FileDialog(jFrame, "Open");
                 dialog.setVisible(true);
 
                 str1 = dialog.getDirectory();
@@ -85,7 +95,7 @@ public class trail extends JFrame {
         file.add(newMenuItem("Save As...", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                FileDialog dialog1 = new FileDialog(trail.this, "Save As", FileDialog.SAVE);
+                FileDialog dialog1 = new FileDialog(jFrame, "Save As", FileDialog.SAVE);
                 dialog1.setVisible(true);
 
                 str7 = dialog1.getDirectory();
@@ -110,7 +120,7 @@ public class trail extends JFrame {
                 }
 
 
-                trail.this.setTitle(str8);
+                jFrame.setTitle(str8);
 
 
             }
@@ -127,22 +137,22 @@ public class trail extends JFrame {
         edit.add(newMenuItem("Cut (Ctrl+X)", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                trail.this.str = text.getSelectedText();
-                i = text.getText().indexOf(trail.this.str);
-                text.replaceRange(" ", i, i + trail.this.str.length());
+                Notepad.this.str = text.getSelectedText();
+                i = text.getText().indexOf(Notepad.this.str);
+                text.replaceRange(" ", i, i + Notepad.this.str.length());
             }
         }));
         edit.add(newMenuItem("Copy (Ctrl+C)", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                trail.this.str = text.getSelectedText();
+                Notepad.this.str = text.getSelectedText();
             }
         }));
         edit.add(newMenuItem("Paste (Ctrl+V)", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 pos1 = text.getCaretPosition();
-                text.insert(trail.this.str, pos1);
+                text.insert(Notepad.this.str, pos1);
             }
         }));
 
@@ -208,10 +218,13 @@ public class trail extends JFrame {
         mbar.add(format);
 
         text = new TextArea(26, 60);
-        mainpanel.add(text);
+        mainpanel.add(text, BorderLayout.CENTER);
 
         f = new Font("Monotype Corsiva", Font.PLAIN, 15);
         text.setFont(f);
+
+        jFrame.pack();
+//        jFrame.addListen
     }
 
     private MenuItem newMenuItem(String caption, ActionListener action) {
@@ -238,8 +251,7 @@ public class trail extends JFrame {
 
 
     public static void main(String args[]) {
-        trail note = new trail("Untitled-Notepad");
-        note.setSize(500, 500);
-        note.setVisible(true);
+        Notepad note = new Notepad();
+        note.initialize();
     }
 }
