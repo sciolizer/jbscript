@@ -17,7 +17,8 @@ import java.util.List;
 
 public class Notepad {
 
-    protected TextArea text;
+    protected TextArea leftText;
+    protected TextArea rightText;
     protected Font f;
     private final Charset charset = Charset.forName("UTF-8");
 
@@ -73,7 +74,7 @@ public class Notepad {
                 for (String line : lines) {
                     builder.append(line).append('\n');
                 }
-                text.setText(builder.toString());
+                leftText.setText(builder.toString());
             }
         }));
         file.add(newMenuItem("Save As...", new ActionListener() {
@@ -87,7 +88,7 @@ public class Notepad {
                 String str9 = str7 + str8;
 
 
-                String str6 = text.getText();
+                String str6 = leftText.getText();
                 int len1 = str6.length();
                 byte buf[] = str6.getBytes();
 
@@ -132,7 +133,7 @@ public class Notepad {
                     int fontStyle = f.getStyle();
 
                     f = new Font(fontName, fontStyle, size);
-                    text.setFont(f);
+                    leftText.setFont(f);
                 }
             });
             font2.add(fsize);
@@ -140,11 +141,15 @@ public class Notepad {
 
         mbar.add(format);
 
-        text = new TextArea(26, 60);
-        mainpanel.add(text, BorderLayout.CENTER);
+        leftText = new TextArea(26, 60);
+        mainpanel.add(leftText, BorderLayout.WEST);
+
+        rightText = new TextArea(26, 60);
+        mainpanel.add(rightText, BorderLayout.EAST);
 
         f = new Font("Monospaced", Font.PLAIN, 15);
-        text.setFont(f);
+        leftText.setFont(f);
+        rightText.setFont(f);
 
         jFrame.pack();
     }
