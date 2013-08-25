@@ -2,10 +2,15 @@ package com.sciolizer.jbscript.gui;
 
 import com.sciolizer.jbscript.DefaultModule;
 import com.sciolizer.jbscript.annotation.Inject;
+import com.sciolizer.jbscript.lang.Lexer;
 import com.sciolizer.jbscript.lang.ast.intelligence.Reformater;
+import com.sciolizer.jbscript.lang.parser.ParseFailException;
 
 import javax.swing.*;
-import javax.swing.text.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.text.Element;
+import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
@@ -20,8 +25,8 @@ import java.util.List;
 
 public class Notepad {
 
-    protected JTextPane leftText;
-    protected JTextPane rightText;
+    protected JTextPane mainText;
+    protected JTextPane rowHeaderText;
     protected Font f;
     private final Charset charset = Charset.forName("UTF-8");
 
@@ -30,7 +35,9 @@ public class Notepad {
 
     public void initialize() {
         final JFrame jFrame = new JFrame("jbscript");
-        jFrame.setSize(200, 500);
+        Dimension dimension = new Dimension(1000, 500);
+        jFrame.setPreferredSize(dimension);
+        jFrame.pack();
         jFrame.setVisible(true);
         jFrame.addWindowListener(new WindowAdapter() {
             @Override
@@ -40,10 +47,8 @@ public class Notepad {
         });
 
 
-        JPanel parentPanel = (JPanel) jFrame.getContentPane();
-        Box mainpanel = new Box(BoxLayout.X_AXIS);
-        parentPanel.add(mainpanel);
-
+        JPanel mainpanel = (JPanel) jFrame.getContentPane();
+        mainpanel.setLayout(new BorderLayout());
 
         MenuBar mbar = new MenuBar();
         jFrame.setMenuBar(mbar);
@@ -81,7 +86,7 @@ public class Notepad {
                 for (String line : lines) {
                     builder.append(line).append('\n');
                 }
-                leftText.setText(builder.toString());
+                mainText.setText(builder.toString());
             }
         }));
         file.add(newMenuItem("Save As...", new ActionListener() {
@@ -95,7 +100,7 @@ public class Notepad {
                 String str9 = str7 + str8;
 
 
-                String str6 = leftText.getText();
+                String str6 = mainText.getText();
                 int len1 = str6.length();
                 byte buf[] = str6.getBytes();
 
@@ -140,7 +145,7 @@ public class Notepad {
                     int fontStyle = f.getStyle();
 
                     f = new Font(fontName, fontStyle, size);
-                    leftText.setFont(f);
+                    mainText.setFont(f);
                 }
             });
             font2.add(fsize);
@@ -148,27 +153,34 @@ public class Notepad {
 
         mbar.add(format);
 
-        leftText = new JTextPane();
-        JScrollPane jScrollPaneLeft = new JScrollPane(leftText);
+        mainText = new JTextPane();
+        JScrollPane jScrollPaneLeft = new JScrollPane(mainText);
         jScrollPaneLeft.setPreferredSize(null);
-//        jScrollPaneLeft.
-        mainpanel.add(jScrollPaneLeft); //, BorderLayout.WEST);
+        mainpanel.add(jScrollPaneLeft, BorderLayout.CENTER);
 
-        leftText.addKeyListener(new KeyAdapter() {
+        mainText.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
                 if (e.getKeyChar() == '\n') {
                     try {
-                        int createdLineOffset = leftText.getCaret().getDot();
-                        int createdLine = getLineOfOffset(leftText, createdLineOffset);
-                        int previousLineOffset = getLineStartOffset(leftText, createdLine - 1);
+                        int createdLineOffset = mainText.getCaret().getDot();
+                        int createdLine = getLineOfOffset(mainText, createdLineOffset);
+                        int previousLineOffset = getLineStartOffset(mainText, createdLine - 1);
                         int len = createdLineOffset - previousLineOffset;
-                        String text = leftText.getText(previousLineOffset, len);
+                        String text = mainText.getText(previousLineOffset, len);
                         text = text.substring(0, text.length() - 1); // remove '\n'
-                        String replacement = reformater.reformat(text) + '\n'; // add it back
-                        StyledDocument styledDocument = leftText.getStyledDocument();
-                        styledDocument.remove(previousLineOffset, len);
-                        styledDocument.insertString(previousLineOffset, replacement, new SimpleAttributeSet());
+                        String replacement;
+                        try {
+                            replacement = reformater.reformat(text) + '\n'; // add it back
+                        } catch (ParseFailException | Lexer.LexFailException e1) {
+                            setHeader(createdLine - 1, "error");
+//                            rowHeaderText.getStyledDocument().insertString(0, e1.getMessage(), new SimpleAttributeSet());
+                            return;
+                        }
+//                        StyledDocument styledDocument = mainText.getStyledDocument();
+//                        styledDocument.remove(previousLineOffset, len);
+//                        styledDocument.insertString(previousLineOffset, replacement, new SimpleAttributeSet());
+                        setHeader(createdLine - 1, replacement);
                     } catch (BadLocationException ble) {
                         System.err.println("offsetRequested: " + ble.offsetRequested());
                         ble.printStackTrace();
@@ -179,16 +191,34 @@ public class Notepad {
             }
         });
 
-        rightText = new JTextPane();
-        JScrollPane jScrollPaneRight = new JScrollPane(rightText);
-        jScrollPaneRight.setPreferredSize(null);
-//        jScrollPaneRight.getVerticalScrollBar().setModel(jScrollPaneLeft.getVerticalScrollBar().getModel());
-        mainpanel.add(jScrollPaneRight); // , BorderLayout.EAST);
+        rowHeaderText = new JTextPane();
+
+        jScrollPaneLeft.setRowHeaderView(rowHeaderText);
 
         f = new Font("Monospaced", Font.PLAIN, 15);
-        leftText.setFont(f);
+        mainText.setFont(f);
+        rowHeaderText.setFont(f);
+        rowHeaderText.setBackground(Color.LIGHT_GRAY);
 
         jFrame.pack();
+    }
+
+    protected void setHeader(int line, String header) {
+        StringBuilder newText = new StringBuilder();
+        String[] split = rowHeaderText.getText().split("\n");
+        for (int i = 0; i <= line || i < split.length; i++) {
+            if (i == line) {
+                newText.append(header).append('\n');
+            } else {
+                if (i < split.length) {
+                    newText.append(split[i]).append('\n');
+                } else {
+                    newText.append('\n');
+                }
+            }
+        }
+        String newValue = newText.toString();
+        rowHeaderText.setText(newValue);
     }
 
     static int getLineOfOffset(JTextComponent comp, int offset) throws BadLocationException {

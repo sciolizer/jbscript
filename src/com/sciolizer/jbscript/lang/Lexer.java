@@ -49,7 +49,7 @@ public class Lexer {
                     add(new IntegerToken(new BigInteger(piece)));
                     continue;
                 }
-                throw new LexFailException();
+                throw new LexFailException("don't know what to do with " + piece);
             }
         }
 
@@ -61,6 +61,8 @@ public class Lexer {
     }
 
     public static class LexFailException extends Exception {
-
+        public LexFailException(String message) {
+            super(message);
+        }
     }
 }

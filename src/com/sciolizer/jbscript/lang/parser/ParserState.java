@@ -23,7 +23,7 @@ public class ParserState {
 
     public ConcreteToken pop() throws ParseFailException {
         if (tokens.isEmpty()) {
-            throw new ParseFailException();
+            throw new ParseFailException("unexpectedly reached end");
         } else {
             ConcreteToken ret = tokens.get(0);
             tokens.remove(0);

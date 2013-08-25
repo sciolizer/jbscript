@@ -22,18 +22,10 @@ public class Reformater {
     @Inject
     protected StatementVisitors statementVisitors;
 
-    public String reformat(String line) {
+    public String reformat(String line) throws ParseFailException, Lexer.LexFailException {
         if (line.isEmpty()) return line;
         List<ConcreteToken> tokens;
-        try {
-            tokens = lexer.lex(line);
-        } catch (Lexer.LexFailException e) {
-            return line;
-        }
-        try {
-            return bnf.statement().parse(parserStates.newParserState(tokens)).accept(statementVisitors.asString());
-        } catch (ParseFailException e) {
-            return line;
-        }
+        tokens = lexer.lex(line);
+        return bnf.statement().parse(parserStates.newParserState(tokens)).accept(statementVisitors.asString());
     }
 }
